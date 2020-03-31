@@ -2,7 +2,15 @@ termpixels
 ==========
 A work in progress TUI framework.
 
-Examples:
+Add in Cargo.toml:
+
+```toml
+[dependencies]
+termpixels = "*"
+
+```
+
+Example:
 
 ```bash
 cargo run --release --example green_box
