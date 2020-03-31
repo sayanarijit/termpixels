@@ -11,5 +11,5 @@ license-file = "LICENSE"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-ansi_term = "*"
-termion = "*"
+ansi_term = "1.5"
+termion = "0.12"
