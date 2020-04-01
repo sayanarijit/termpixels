@@ -1,24 +1,29 @@
 use std::io;
 use termpixels::ansi_term::{Color, Style};
-use termpixels::termion::event::{Event, Key};
-use termpixels::termion::input::TermRead;
+use termpixels::termion::event::{Event, Key, MouseEvent};
+use termpixels::termion::input::{MouseTerminal, TermRead};
 use termpixels::termion::raw::IntoRawMode;
 use termpixels::{Location, Renderable, Size};
 
-struct GreenBox {
+struct GreenBox<'a> {
     fill: char,
-    size: Size,
-    position: Location,
+    size: &'a mut Size,
+    position: &'a mut Location,
     display: char,
 }
 
-impl Renderable for GreenBox {
-    fn size(&self) -> Size {
+impl Renderable for GreenBox<'_> {
+    fn size(&self) -> &Size {
         self.size
     }
 
-    fn position(&self) -> Location {
-        self.position
+    fn position(&self) -> &Location {
+        &self.position
+    }
+
+    fn set_position(&mut self, location: &Location) {
+        self.position.0 = location.0;
+        self.position.1 = location.1;
     }
 
     fn ascii_for(&self, location: &Location) -> char {
@@ -54,6 +59,13 @@ impl Renderable for GreenBox {
                 self.display = c;
                 Ok(())
             }
+            Event::Mouse(me) => match me {
+                MouseEvent::Hold(x, y) | MouseEvent::Press(_, x, y) => {
+                    self.set_center(&(x, y));
+                    Ok(())
+                }
+                _ => Ok(()),
+            },
             _ => Ok(()),
         }
     }
@@ -63,10 +75,10 @@ fn main() {
     let mut panel = GreenBox {
         display: 'x',
         fill: ' ',
-        size: (20, 10),    // width, height
-        position: (20, 4), // x, y
+        size: &mut (20, 10),    // width, height
+        position: &mut (20, 4), // x, y
     };
-    let mut stdout = io::stdout().into_raw_mode().unwrap();
+    let mut stdout = MouseTerminal::from(io::stdout().into_raw_mode().unwrap());
     let stdin = io::stdin();
     let mut events = stdin.events();
     if let Err(err) = panel.render(&mut stdout, &mut events) {
