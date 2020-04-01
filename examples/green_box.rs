@@ -5,20 +5,20 @@ use termpixels::termion::input::{MouseTerminal, TermRead};
 use termpixels::termion::raw::IntoRawMode;
 use termpixels::{Location, Renderable, Size};
 
-struct GreenBox<'a> {
+struct GreenBox {
     fill: char,
-    size: &'a mut Size,
-    position: &'a mut Location,
+    size: Size,
+    position: Location,
     display: char,
 }
 
-impl Renderable for GreenBox<'_> {
-    fn size(&self) -> &Size {
+impl Renderable for GreenBox {
+    fn size(&self) -> Size {
         self.size
     }
 
-    fn position(&self) -> &Location {
-        &self.position
+    fn position(&self) -> Location {
+        self.position
     }
 
     fn set_position(&mut self, location: &Location) {
@@ -75,8 +75,8 @@ fn main() {
     let mut panel = GreenBox {
         display: 'x',
         fill: ' ',
-        size: &mut (20, 10),    // width, height
-        position: &mut (20, 4), // x, y
+        size: (20, 10),    // width, height
+        position: (20, 4), // x, y
     };
     let mut stdout = MouseTerminal::from(io::stdout().into_raw_mode().unwrap());
     let stdin = io::stdin();

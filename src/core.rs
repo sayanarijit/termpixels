@@ -9,9 +9,9 @@ pub type Location = (u16, u16); // width, height
 pub type Size = (u16, u16); // x, y
 
 pub trait Renderable {
-    fn position(&self) -> &Location;
+    fn position(&self) -> Location;
     fn set_position(&mut self, location: &Location);
-    fn size(&self) -> &Size;
+    fn size(&self) -> Size;
     fn ascii_for(&self, location: &Location) -> char;
     fn style_for(&self, location: &Location) -> Style;
     fn on_event(&mut self, event: Event) -> io::Result<()>;
@@ -29,7 +29,7 @@ pub trait Renderable {
 
     fn set_center(&mut self, location: &Location) {
         let &(mut x, mut y) = location;
-        let &(w, h) = self.size();
+        let (w, h) = self.size();
 
         x -= w / 2;
         y -= h / 2;
@@ -38,7 +38,7 @@ pub trait Renderable {
     }
 
     fn top_left_corner(&self) -> Location {
-        let &(x, y) = self.position();
+        let (x, y) = self.position();
         (x, y)
     }
 
@@ -47,8 +47,8 @@ pub trait Renderable {
     }
 
     fn bottom_left_corner(&self) -> Location {
-        let &(x, y) = self.position();
-        let &(_, height) = self.size();
+        let (x, y) = self.position();
+        let (_, height) = self.size();
 
         (x, y + height)
     }
@@ -58,8 +58,8 @@ pub trait Renderable {
     }
 
     fn top_right_corner(&self) -> Location {
-        let &(x, y) = self.position();
-        let &(width, _) = self.size();
+        let (x, y) = self.position();
+        let (width, _) = self.size();
 
         (x + width, y)
     }
@@ -69,8 +69,8 @@ pub trait Renderable {
     }
 
     fn bottom_right_corner(&self) -> Location {
-        let &(x, y) = self.position();
-        let &(width, height) = self.size();
+        let (x, y) = self.position();
+        let (width, height) = self.size();
 
         (x + height, y + width)
     }
