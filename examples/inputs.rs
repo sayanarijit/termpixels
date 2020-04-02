@@ -7,9 +7,12 @@ use termpixels_derive::{Clear, Paint, Render, TermObject};
 #[derive(TermObject, Paint, Clear, Render)]
 struct GreenBox {
     fill: char,
+    fill_style: Style,
     size: Size,
     position: Location,
     display: char,
+    display_style: Style,
+    border_style: Style,
 }
 
 // A custom struct
@@ -31,11 +34,11 @@ impl Shape for GreenBox {
 impl Appearance for GreenBox {
     fn style_for(&self, location: &Location) -> Style {
         if self.is_center(location) {
-            Style::default().fg(Color::Black).on(Color::White)
+            self.display_style
         } else if self.is_boundary(location) {
-            Style::default().on(Color::Red)
+            self.border_style
         } else {
-            Style::default().on(Color::Green)
+            self.fill_style
         }
     }
 }
@@ -65,7 +68,10 @@ impl EventHandler for GreenBox {
 fn main() {
     let mut panel = GreenBox {
         display: 'x',
+        display_style: Style::default().fg(Color::Black).on(Color::White),
         fill: ' ',
+        fill_style: Style::default().on(Color::Green),
+        border_style: Style::default().on(Color::Red),
         size: (20, 10),    // width, height
         position: (20, 4), // x, y
     };
