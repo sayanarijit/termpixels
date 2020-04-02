@@ -1,10 +1,10 @@
-use std::io;
 use termpixels::ansi_term::{Color, Style};
+use termpixels::prelude::*;
 use termpixels::termion::event::{Event, Key, MouseEvent};
-use termpixels::termion::input::{MouseTerminal, TermRead};
-use termpixels::termion::raw::IntoRawMode;
-use termpixels::{Location, Renderable, Size};
+use termpixels::termion::input::MouseTerminal;
+use termpixels_derive::{Clear, Paint, Render, TermObject};
 
+#[derive(TermObject, Paint, Clear, Render)]
 struct GreenBox {
     fill: char,
     size: Size,
@@ -12,20 +12,8 @@ struct GreenBox {
     display: char,
 }
 
-impl Renderable for GreenBox {
-    fn size(&self) -> Size {
-        self.size
-    }
-
-    fn position(&self) -> Location {
-        self.position
-    }
-
-    fn set_position(&mut self, location: &Location) {
-        self.position.0 = location.0;
-        self.position.1 = location.1;
-    }
-
+// A custom struct
+impl Shape for GreenBox {
     fn ascii_for(&self, location: &Location) -> char {
         if self.is_center(location) {
             self.display
@@ -39,7 +27,8 @@ impl Renderable for GreenBox {
             self.fill
         }
     }
-
+}
+impl Appearance for GreenBox {
     fn style_for(&self, location: &Location) -> Style {
         if self.is_center(location) {
             Style::default().fg(Color::Black).on(Color::White)
@@ -49,7 +38,9 @@ impl Renderable for GreenBox {
             Style::default().on(Color::Green)
         }
     }
+}
 
+impl EventHandler for GreenBox {
     fn on_event(&mut self, event: Event) -> io::Result<()> {
         match event {
             Event::Key(Key::Esc) | Event::Key(Key::Ctrl('c')) => {

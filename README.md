@@ -18,7 +18,7 @@ Run Example
 -------
 
 ```bash
-cargo run --release --example green_box
+cargo run --release --example inputs
 ```
 
 Warning: This project is currently for my own learning purpose and thus highly unstable.
