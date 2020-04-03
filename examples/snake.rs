@@ -1,5 +1,5 @@
 use ansi_term::{Color, Style};
-use std::collections::LinkedList;
+use std::collections::VecDeque;
 use std::io;
 use std::time::Duration;
 use std::time::SystemTime;
@@ -31,7 +31,7 @@ impl Direction {
 
 struct Snake {
     direction: Direction,
-    body: LinkedList<Location>,
+    body: VecDeque<Location>,
     style: Style,
     fast: bool,
 }
@@ -208,7 +208,7 @@ fn main() {
         background_style: Style::default().on(Color::Black),
         snake: Snake {
             direction: Direction::Up,
-            body: LinkedList::new(),
+            body: VecDeque::new(),
             style: Style::default().fg(Color::Cyan),
             fast: false,
         },
@@ -217,7 +217,7 @@ fn main() {
 
     game.snake.body.push_back((width / 2, height / 2));
     game.snake.body.push_back((width / 2, height / 2 + 1));
-    game.snake.body.push_back((width / 2, height / 2 + 1));
+    game.snake.body.push_back((width / 2, height / 2 + 2));
 
     let stdin = async_stdin();
     let mut events = stdin.events();
