@@ -1,5 +1,6 @@
 use crate::ansi_term::Style;
 use std::io::{self, Read, Write};
+use std::time::Duration;
 use termion::event::Event;
 use termion::input::Events;
 use termion::raw::RawTerminal;
@@ -8,7 +9,7 @@ pub type Location = (u16, u16); // width, height
 
 pub type Size = (u16, u16); // x, y
 
-pub trait TermObject {
+pub trait Object {
     fn position(&self) -> Location;
     fn set_position(&mut self, location: &Location);
     fn size(&self) -> Size;
@@ -132,25 +133,27 @@ pub trait TermObject {
     }
 }
 
-pub trait Shape: TermObject {
-    fn ascii_for(&self, _location: &Location) -> char;
+pub trait View: Object {
+    fn ascii_for(&self, location: &Location) -> Option<char>;
+    fn style_for(&self, location: &Location) -> Style;
 }
 
-pub trait Appearance: TermObject {
-    fn style_for(&self, _location: &Location) -> Style;
+pub trait Update: Object {
+    fn update(&mut self) -> io::Result<()>;
 }
 
 pub trait EventHandler {
     fn on_event(&mut self, event: Event) -> io::Result<()>;
 }
 
-pub trait Paint: TermObject + Shape + Appearance {
-    fn paint(&self, stdout: &mut RawTerminal<io::Stdout>, location: Location) -> io::Result<()>;
+pub trait Paint: Object + View {
+    fn paint(&self, stdout: &mut RawTerminal<io::Stdout>, location: &Location) -> io::Result<()>;
 
     fn paint_all(&self, stdout: &mut RawTerminal<io::Stdout>) -> io::Result<()> {
+        write!(stdout, "{}", termion::cursor::Hide)?;
         for y in self.top_boundary()..(self.bottom_boundary() + 1) {
             for x in self.left_boundary()..(self.right_boundary() + 1) {
-                self.paint(stdout, (x, y))?;
+                self.paint(stdout, &(x, y))?;
             }
         }
         write!(stdout, "{}", termion::cursor::Show)?;
@@ -158,13 +161,13 @@ pub trait Paint: TermObject + Shape + Appearance {
     }
 }
 
-pub trait Clear: TermObject + Shape + Appearance {
-    fn clear(&self, stdout: &mut RawTerminal<io::Stdout>, location: Location) -> io::Result<()>;
+pub trait Clear: Object + View {
+    fn clear(&self, stdout: &mut RawTerminal<io::Stdout>, location: &Location) -> io::Result<()>;
 
     fn clear_all(&self, stdout: &mut RawTerminal<io::Stdout>) -> io::Result<()> {
         for y in self.top_boundary()..(self.bottom_boundary() + 1) {
             for x in self.left_boundary()..(self.right_boundary() + 1) {
-                self.clear(stdout, (x, y))?;
+                self.clear(stdout, &(x, y))?;
             }
         }
         write!(stdout, "{}", termion::cursor::Show)?;
@@ -172,11 +175,12 @@ pub trait Clear: TermObject + Shape + Appearance {
     }
 }
 
-pub trait Render: Paint + Clear + EventHandler {
+pub trait Render: Paint + Update + EventHandler {
     fn render<R: Read>(
         &mut self,
         stdout: &mut RawTerminal<io::Stdout>,
         events: &mut Events<R>,
+        refresh_interval: Option<Duration>,
     ) -> io::Result<()>;
 }
 

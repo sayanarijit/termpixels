@@ -4,13 +4,13 @@ use proc_macro::TokenStream;
 use quote::quote;
 use syn::{parse_macro_input, DeriveInput};
 
-#[proc_macro_derive(TermObject)]
-pub fn term_object_derive(input: TokenStream) -> TokenStream {
+#[proc_macro_derive(Object)]
+pub fn object_derive(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
     let name = input.ident;
 
     let gen = quote! {
-        impl TermObject for #name {
+        impl Object for #name {
             fn position(&self) -> Location {
                 self.position
             }
@@ -30,34 +30,36 @@ pub fn term_object_derive(input: TokenStream) -> TokenStream {
     gen.into()
 }
 
-#[proc_macro_derive(Shape)]
-pub fn shape_derive(input: TokenStream) -> TokenStream {
+#[proc_macro_derive(View)]
+pub fn view_derive(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
     let name = input.ident;
 
     let gen = quote! {
-        impl Shape for #name {
-            fn ascii_for(&self, _location: &Location) -> char {
-                ' '
+        impl View for #name {
+            fn ascii_for(&self, _location: &Location) -> Option<char> {
+                Some(' ')
+            }
+            fn style_for(&self, _location: &Location) -> ansi_term::Style {
+                ansi_term::Style::default()
             }
         }
     };
     gen.into()
 }
 
-#[proc_macro_derive(Appearance)]
-pub fn appearance_derive(input: TokenStream) -> TokenStream {
+#[proc_macro_derive(Update)]
+pub fn update_derive(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
     let name = input.ident;
 
     let gen = quote! {
-        impl Appearance for #name {
-            fn style_for(&self, _location: &Location) -> ansi_term::Style {
-                ansi_term::Style::default()
+        impl Update for #name {
+            fn update(&mut self) -> io::Result<()> {
+                Ok(())
             }
         }
     };
-
     gen.into()
 }
 
@@ -87,21 +89,23 @@ pub fn paint_derive(input: TokenStream) -> TokenStream {
     let name = input.ident;
 
     let gen = quote! {
-       impl Paint for #name {
-           fn paint(
-               &self,
-               stdout: &mut termion::raw::RawTerminal<std::io::Stdout>,
-               location: Location,
-           ) -> io::Result<()> {
-               let ch = self.ascii_for(&location);
-               let style = self.style_for(&location);
-
-               write!(
-                   stdout,
-                   "{}{}",
-                   termion::cursor::Goto(location.0, location.1),
-                   style.paint(ch.to_string())
-               )
+        impl Paint for #name {
+            fn paint(
+                &self,
+                stdout: &mut termion::raw::RawTerminal<std::io::Stdout>,
+                location: &Location,
+            ) -> io::Result<()> {
+                if let Some(ch) = self.ascii_for(location) {
+                    let style = self.style_for(location);
+                    write!(
+                        stdout,
+                        "{}{}",
+                        termion::cursor::Goto(location.0, location.1),
+                        style.paint(ch.to_string())
+                    )
+                } else {
+                    Ok(())
+                }
            }
        }
     };
@@ -118,9 +122,13 @@ pub fn clear_derive(input: TokenStream) -> TokenStream {
             fn clear(
                 &self,
                 stdout: &mut termion::raw::RawTerminal<std::io::Stdout>,
-                location: Location,
+                location: &Location,
             ) -> std::io::Result<()> {
-                write!(stdout, "{} ", termion::cursor::Goto(location.0, location.1))
+                if self.ascii_for(location).is_some() {
+                    write!(stdout, "{} ", termion::cursor::Goto(location.0, location.1))
+                } else {
+                    Ok(())
+                }
             }
         }
     };
@@ -138,52 +146,29 @@ pub fn render_derive(input: TokenStream) -> TokenStream {
                 &mut self,
                 stdout: &mut termion::raw::RawTerminal<std::io::Stdout>,
                 events: &mut termion::input::Events<R>,
+                refresh_interval: Option<std::time::Duration>,
             ) -> std::io::Result<()> {
                 loop {
+                    self.update()?;
                     self.paint_all(stdout)?;
+
                     if let Some(result) = events.next() {
                         let event = result?;
                         if let Err(err) = self.on_event(event) {
                             match err.kind() {
                                 std::io::ErrorKind::Interrupted => {
-                                    break self.clear_all(stdout);
+                                    break Ok(());
                                 }
                                 _ => {
-                                    self.clear_all(stdout)?;
                                     break Err(err);
                                 }
                             }
                         }
+                    };
+
+                    if let Some(interval) = refresh_interval {
+                        std::thread::sleep(interval);
                     }
-                }
-            }
-        }
-    };
-    gen.into()
-}
-
-#[proc_macro_derive(BorderedShape)]
-pub fn pordered_shape_derive(input: TokenStream) -> TokenStream {
-    let input = parse_macro_input!(input as DeriveInput);
-    let name = input.ident;
-
-    let gen = quote! {
-        impl Shape for #name {
-            fn ascii_for(&self, location: &Location) -> char {
-                if self.is_top_left_corner(location) {
-                    '┌'
-                } else if self.is_top_right_corner(location) {
-                    '┐'
-                } else if self.is_bottom_left_corner(location) {
-                    '└'
-                } else if self.is_bottom_right_corner(location) {
-                    '┘'
-                } else if self.is_right_boundary(location) || self.is_left_boundary(location) {
-                    '│'
-                } else if self.is_top_boundary(location) || self.is_bottom_boundary(location) {
-                    '─'
-                } else {
-                    ' '
                 }
             }
         }

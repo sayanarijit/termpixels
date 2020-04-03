@@ -2,9 +2,9 @@ use termpixels::ansi_term::{Color, Style};
 use termpixels::prelude::*;
 use termpixels::termion::event::{Event, Key, MouseEvent};
 use termpixels::termion::input::MouseTerminal;
-use termpixels_derive::{Clear, Paint, Render, TermObject};
+use termpixels_derive::{Object, Paint, Render, Update};
 
-#[derive(TermObject, Paint, Clear, Render)]
+#[derive(Object, Update, Paint, Render)]
 struct GreenBox {
     fill: char,
     fill_style: Style,
@@ -15,23 +15,21 @@ struct GreenBox {
     border_style: Style,
 }
 
-// A custom struct
-impl Shape for GreenBox {
-    fn ascii_for(&self, location: &Location) -> char {
+impl View for GreenBox {
+    fn ascii_for(&self, location: &Location) -> Option<char> {
         if self.is_center(location) {
-            self.display
+            Some(self.display)
         } else if self.is_corner(location) {
-            '+'
+            Some('+')
         } else if self.is_right_boundary(location) || self.is_left_boundary(location) {
-            '│'
+            Some('│')
         } else if self.is_top_boundary(location) || self.is_bottom_boundary(location) {
-            '─'
+            Some('─')
         } else {
-            self.fill
+            Some(self.fill)
         }
     }
-}
-impl Appearance for GreenBox {
+
     fn style_for(&self, location: &Location) -> Style {
         if self.is_center(location) {
             self.display_style
@@ -75,10 +73,13 @@ fn main() {
         size: (20, 10),    // width, height
         position: (20, 4), // x, y
     };
+
     let mut stdout = MouseTerminal::from(io::stdout().into_raw_mode().unwrap());
+
     let stdin = io::stdin();
     let mut events = stdin.events();
-    if let Err(err) = panel.render(&mut stdout, &mut events) {
+
+    if let Err(err) = panel.render(&mut stdout, &mut events, None) {
         eprintln!("{}", err);
         std::process::exit(1);
     };
