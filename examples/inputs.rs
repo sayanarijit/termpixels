@@ -2,9 +2,9 @@ use termpixels::ansi_term::{Color, Style};
 use termpixels::prelude::*;
 use termpixels::termion::event::{Event, Key, MouseEvent};
 use termpixels::termion::input::MouseTerminal;
-use termpixels_derive::{Object, Paint, Render, Update};
+use termpixels_derive::{Object, Render, Update, View};
 
-#[derive(Object, Update, Paint, Render)]
+#[derive(Object, View, Update, Render)]
 struct GreenBox {
     fill: char,
     fill_style: Style,
@@ -15,8 +15,8 @@ struct GreenBox {
     border_style: Style,
 }
 
-impl View for GreenBox {
-    fn ascii_for(&self, location: &Location) -> Option<char> {
+impl Paint for GreenBox {
+    fn paint_ascii_for(&self, location: &Location) -> Option<char> {
         if self.is_center(location) {
             Some(self.display)
         } else if self.is_corner(location) {
@@ -30,7 +30,7 @@ impl View for GreenBox {
         }
     }
 
-    fn style_for(&self, location: &Location) -> Style {
+    fn paint_style_for(&self, location: &Location) -> Style {
         if self.is_center(location) {
             self.display_style
         } else if self.is_boundary(location) {
@@ -38,6 +38,15 @@ impl View for GreenBox {
         } else {
             self.fill_style
         }
+    }
+}
+
+impl Clear for GreenBox {
+    fn clear_ascii_for(&self, _location: &Location) -> Option<char> {
+        Some(' ')
+    }
+    fn clear_style_for(&self, _location: &Location) -> Style {
+        Style::default()
     }
 }
 

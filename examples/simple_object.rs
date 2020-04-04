@@ -20,5 +20,4 @@ fn main() {
         eprintln!("{}", err);
         std::process::exit(1);
     };
-    my_obj.clear_all(&mut stdout).unwrap();
 }

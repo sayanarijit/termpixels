@@ -8,7 +8,7 @@ use termion::event::{Event, Key};
 use termion::terminal_size;
 use termpixels::border::{ascii_for_border_or, BorderType};
 use termpixels::prelude::*;
-use termpixels_derive::{Clear, Object, Paint, Render};
+use termpixels_derive::{Clear, Object, Render, View};
 
 #[derive(Copy, Clone, PartialEq)]
 enum Direction {
@@ -106,7 +106,7 @@ impl Food {
     }
 }
 
-#[derive(Object, Paint, Render, Clear)]
+#[derive(Object, View, Clear, Render)]
 struct Game {
     position: Location,
     size: Size,
@@ -116,8 +116,8 @@ struct Game {
     game_over: bool,
 }
 
-impl View for Game {
-    fn style_for(&self, location: &Location) -> Style {
+impl Paint for Game {
+    fn paint_style_for(&self, location: &Location) -> Style {
         if location == &self.food.location {
             self.food.style
         } else if self.snake.is_body(location) {
@@ -127,14 +127,16 @@ impl View for Game {
         }
     }
 
-    fn ascii_for(&self, location: &Location) -> Option<char> {
+    fn paint_ascii_for(&self, location: &Location) -> Option<char> {
         ascii_for_border_or(self, location, BorderType::Simple, || {
             if location == &self.food.location {
                 Some(self.food.ascii)
+            } else if location == self.snake.body.front().unwrap() {
+                Some('⚇')
             } else if self.snake.is_body(location) {
-                Some('⬤')
+                Some('◌')
             } else {
-                Some(' ')
+                None
             }
         })
     }

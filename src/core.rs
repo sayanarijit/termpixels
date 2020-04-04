@@ -1,5 +1,5 @@
 use crate::ansi_term::Style;
-use std::io::{self, Read, Write};
+use std::io::{self, Read};
 use std::time::Duration;
 use termion::event::Event;
 use termion::input::Events;
@@ -8,6 +8,8 @@ use termion::raw::RawTerminal;
 pub type Location = (u16, u16); // width, height
 
 pub type Size = (u16, u16); // x, y
+
+pub type TermPixel = (Location, char, Style);
 
 pub trait Object {
     fn position(&self) -> Location;
@@ -133,9 +135,19 @@ pub trait Object {
     }
 }
 
-pub trait View: Object {
-    fn ascii_for(&self, location: &Location) -> Option<char>;
-    fn style_for(&self, location: &Location) -> Style;
+pub trait Paint: Object {
+    fn paint_ascii_for(&self, location: &Location) -> Option<char>;
+    fn paint_style_for(&self, location: &Location) -> Style;
+}
+
+pub trait Clear: Object {
+    fn clear_ascii_for(&self, location: &Location) -> Option<char>;
+    fn clear_style_for(&self, location: &Location) -> Style;
+}
+
+pub trait View: Paint + Clear {
+    // TODO: Use iterator
+    fn view(&self) -> Vec<TermPixel>;
 }
 
 pub trait Update: Object {
@@ -146,36 +158,7 @@ pub trait EventHandler {
     fn on_event(&mut self, event: Event) -> io::Result<()>;
 }
 
-pub trait Paint: Object + View {
-    fn paint(&self, stdout: &mut RawTerminal<io::Stdout>, location: &Location) -> io::Result<()>;
-
-    fn paint_all(&self, stdout: &mut RawTerminal<io::Stdout>) -> io::Result<()> {
-        write!(stdout, "{}", termion::cursor::Hide)?;
-        for y in self.top_boundary()..(self.bottom_boundary() + 1) {
-            for x in self.left_boundary()..(self.right_boundary() + 1) {
-                self.paint(stdout, &(x, y))?;
-            }
-        }
-        write!(stdout, "{}", termion::cursor::Show)?;
-        stdout.flush()
-    }
-}
-
-pub trait Clear: Object + View {
-    fn clear(&self, stdout: &mut RawTerminal<io::Stdout>, location: &Location) -> io::Result<()>;
-
-    fn clear_all(&self, stdout: &mut RawTerminal<io::Stdout>) -> io::Result<()> {
-        for y in self.top_boundary()..(self.bottom_boundary() + 1) {
-            for x in self.left_boundary()..(self.right_boundary() + 1) {
-                self.clear(stdout, &(x, y))?;
-            }
-        }
-        write!(stdout, "{}", termion::cursor::Show)?;
-        stdout.flush()
-    }
-}
-
-pub trait Render: Paint + Update + EventHandler {
+pub trait Render: View + Update + EventHandler {
     fn render<R: Read>(
         &mut self,
         stdout: &mut RawTerminal<io::Stdout>,
