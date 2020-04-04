@@ -10,7 +10,6 @@ Add in Cargo.toml
 ```
 [dependencies]
 termpixels = "*"
-
 ```
 
 

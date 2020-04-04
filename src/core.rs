@@ -133,6 +133,11 @@ pub trait Object {
             && y >= self.top_boundary()
             && y <= self.bottom_boundary()
     }
+
+    fn can_contain(&self, object: &dyn Object) -> bool {
+        return self.covers(&object.top_left_corner())
+            && self.covers(&object.bottom_right_corner());
+    }
 }
 
 pub trait Paint: Object {

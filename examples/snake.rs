@@ -224,7 +224,7 @@ fn main() {
     let stdin = async_stdin();
     let mut events = stdin.events();
 
-    if let Err(err) = game.render(&mut stdout, &mut events, Some(Duration::from_millis(50))) {
+    if let Err(err) = game.render(&mut stdout, &mut events, None) {
         eprintln!("{}", err);
         std::process::exit(1);
     };
