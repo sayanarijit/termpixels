@@ -11,6 +11,6 @@ license = "MIT"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-termpixels_derive = { path = "./termpixels_derive" }
+termpixels_derive = "0.5.0"
 ansi_term = "0.12"
 termion = "1.5"
