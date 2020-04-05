@@ -2,7 +2,6 @@ use ansi_term::{Color, Style};
 use std::io;
 use termion::terminal_size;
 use termpixels::app;
-use termpixels::canvas::Canvas;
 use termpixels::event::{Event, Input, Key, Mouse};
 use termpixels::types::*;
 use termpixels::views::border::simple_border;
@@ -42,18 +41,23 @@ struct MyModel {
     input_box: MyInputBox,
 }
 
-fn init(canvas: &MyCanvas) -> io::Result<MyModel> {
-    Ok(MyModel {
+fn init() -> io::Result<(MyCanvas, MyModel)> {
+    let cv = MyCanvas {
+        bg_style: Style::default(),
+        size: terminal_size().unwrap(),
+    };
+    let model = MyModel {
         input_box: MyInputBox {
             value: 'x',
-            center: canvas.center()?,
+            center: cv.center()?,
             font_style: Style::default().fg(Color::Black).on(Color::White),
             bg_style: Style::default().on(Color::Green),
         },
-    })
+    };
+    Ok((cv, model))
 }
 
-fn update(model: &mut MyModel, event: &Event) -> io::Result<Event> {
+fn update(_: &MyCanvas, model: &mut MyModel, event: &Event<()>) -> io::Result<Event<()>> {
     match event {
         Event::GracefulStop => Ok(Event::Stop),
         Event::Input(Input::Key(k)) => match k {
@@ -108,9 +112,5 @@ fn view(canvas: &MyCanvas, model: &MyModel, position: &Position) -> io::Result<O
 }
 
 fn main() {
-    let cv = MyCanvas {
-        bg_style: Style::default(),
-        size: terminal_size().unwrap(),
-    };
-    app::run(&cv, &init, &view, &update, None).unwrap();
+    app::run(&init, &view, &update, None).unwrap();
 }

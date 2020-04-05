@@ -1,5 +1,5 @@
-use crate::canvas::Canvas;
-use crate::event::Event;
+pub use crate::canvas::Canvas;
+pub use crate::event::Event;
 use ansi_term::Style;
 use std::io;
 
@@ -10,12 +10,12 @@ pub type TermPixel = (char, Style);
 pub trait Model: Sized {}
 impl<T: Sized> Model for T {}
 
-pub trait Init<C: Canvas, M: Model>: Fn(&C) -> io::Result<M> {}
+pub trait Init<C: Canvas, M: Model>: Fn() -> io::Result<(C, M)> {}
 impl<T, C, M> Init<C, M> for T
 where
     C: Canvas,
     M: Model,
-    T: Fn(&C) -> io::Result<M>,
+    T: Fn() -> io::Result<(C, M)>,
 {
 }
 
@@ -32,10 +32,14 @@ where
 {
 }
 
-pub trait Update<M: Model>: Fn(&mut M, &Event) -> io::Result<Event> {}
-impl<T, M> Update<M> for T
+pub trait Update<C: Canvas, M: Model, E>:
+    Fn(&C, &mut M, &Event<E>) -> io::Result<Event<E>>
+{
+}
+impl<T, C, M, E> Update<C, M, E> for T
 where
+    C: Canvas,
     M: Model,
-    T: Fn(&mut M, &Event) -> io::Result<Event>,
+    T: Fn(&C, &mut M, &Event<E>) -> io::Result<Event<E>>,
 {
 }

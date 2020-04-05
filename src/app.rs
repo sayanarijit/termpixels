@@ -31,8 +31,7 @@ pub fn render<C: Canvas, M: Model, V: View<C, M>>(
     Ok(vec)
 }
 
-pub fn run<C: Canvas, M: Model, I: Init<C, M>, V: View<C, M>, U: Update<M>>(
-    canvas: &C,
+pub fn run<C: Canvas, M: Model, E, I: Init<C, M>, V: View<C, M>, U: Update<C, M, E>>(
     init: &I,
     view: &V,
     update: &U,
@@ -43,8 +42,8 @@ pub fn run<C: Canvas, M: Model, I: Init<C, M>, V: View<C, M>, U: Update<M>>(
     let mut interrupted = false;
     let mut screen: HashMap<Position, TermPixel> = HashMap::new();
 
-    let mut model = init(&canvas)?;
-    let mut updates = render(canvas, &model, view)?;
+    let (canvas, mut model) = init()?;
+    let mut updates = render(&canvas, &model, view)?;
     let mut event = Event::NoOp;
 
     write!(stdout, "{}", termion::cursor::Hide)?;
@@ -65,7 +64,7 @@ pub fn run<C: Canvas, M: Model, I: Init<C, M>, V: View<C, M>, U: Update<M>>(
                 updates.clear();
             }
 
-            for (position, (ascii, style)) in render(canvas, &model, view)? {
+            for (position, (ascii, style)) in render(&canvas, &model, view)? {
                 if let Some((curr_ascii, curr_style)) = screen.get(&position) {
                     if curr_ascii == &ascii && curr_style == &style {
                         continue;
@@ -83,8 +82,7 @@ pub fn run<C: Canvas, M: Model, I: Init<C, M>, V: View<C, M>, U: Update<M>>(
                 drop(stdout);
                 drop(inputs);
                 drop(model);
-
-                std::process::exit(ExitCode::GracefulStop as i32);
+                std::process::exit(ExitCode::OK as i32);
             }
             Event::NoOp => {
                 if let Some(Ok(input)) = inputs.next() {
@@ -93,7 +91,7 @@ pub fn run<C: Canvas, M: Model, I: Init<C, M>, V: View<C, M>, U: Update<M>>(
                             Key::Ctrl('c') => match interrupted {
                                 false => {
                                     interrupted = true;
-                                    update(&mut model, &Event::GracefulStop)?;
+                                    update(&canvas, &mut model, &Event::GracefulStop)?;
                                     event = Event::Stop;
                                 }
                                 true => {
@@ -110,14 +108,14 @@ pub fn run<C: Canvas, M: Model, I: Init<C, M>, V: View<C, M>, U: Update<M>>(
                     }
                 };
             }
-            e => {
-                event = update(&mut model, &e)?;
-            }
+            _ => {}
         }
 
         if interrupted {
             continue;
         }
+
+        event = update(&canvas, &mut model, &event)?;
 
         if let Some(interval) = refresh_interval {
             std::thread::sleep(interval);

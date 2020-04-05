@@ -48,6 +48,13 @@ pub trait Canvas {
         Ok((x, y))
     }
 
+    fn is_boundary(&self, position: &Position) -> io::Result<bool> {
+        let (x1, y1) = self.top_left_corner()?;
+        let (x2, y2) = self.bottom_right_corner()?;
+        let &(px, py) = position;
+        Ok(x1 == px || x2 == px || y1 == py || y2 == py)
+    }
+
     fn vcenter(&self, x: u16) -> io::Result<Position> {
         let (_, y) = self.center()?;
         Ok((x, y))

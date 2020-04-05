@@ -1,7 +1,6 @@
 pub enum ExitCode {
-    Success = 0,
+    OK = 0,
     GeneralFailiure = 1,
-    GracefulStop = 130,
-    ForcefulStop = 132,
+    ForcefulStop = 130,
     UnknownFailure = 200,
 }
