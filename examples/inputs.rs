@@ -1,95 +1,116 @@
-use termpixels::ansi_term::{Color, Style};
-use termpixels::prelude::*;
-use termpixels::termion::event::{Event, Key, MouseEvent};
-use termpixels::termion::input::MouseTerminal;
-use termpixels_derive::{Object, Render, Update, View};
+use ansi_term::{Color, Style};
+use std::io;
+use termion::terminal_size;
+use termpixels::app;
+use termpixels::canvas::Canvas;
+use termpixels::event::{Event, Input, Key, Mouse};
+use termpixels::types::*;
+use termpixels::views::border::simple_border;
 
-#[derive(Object, View, Update, Render)]
-struct GreenBox {
-    fill: char,
-    fill_style: Style,
+struct MyCanvas {
     size: Size,
-    position: Location,
-    display: char,
-    display_style: Style,
-    border_style: Style,
+    bg_style: Style,
 }
 
-impl Paint for GreenBox {
-    fn paint_ascii_for(&self, location: &Location) -> Option<char> {
-        if self.is_center(location) {
-            Some(self.display)
-        } else if self.is_corner(location) {
-            Some('+')
-        } else if self.is_right_boundary(location) || self.is_left_boundary(location) {
-            Some('│')
-        } else if self.is_top_boundary(location) || self.is_bottom_boundary(location) {
-            Some('─')
-        } else {
-            Some(self.fill)
-        }
+impl Canvas for MyCanvas {
+    fn top_left_corner(&self) -> io::Result<Position> {
+        Ok((1, 1))
     }
-
-    fn paint_style_for(&self, location: &Location) -> Style {
-        if self.is_center(location) {
-            self.display_style
-        } else if self.is_boundary(location) {
-            self.border_style
-        } else {
-            self.fill_style
-        }
+    fn bottom_right_corner(&self) -> io::Result<Position> {
+        Ok(self.size)
     }
 }
 
-impl Clear for GreenBox {
-    fn clear_ascii_for(&self, _location: &Location) -> Option<char> {
-        Some(' ')
+struct MyInputBox {
+    center: (u16, u16),
+    value: char,
+    font_style: Style,
+    bg_style: Style,
+}
+impl Canvas for MyInputBox {
+    fn top_left_corner(&self) -> io::Result<Position> {
+        let (x, y) = self.center;
+        Ok((x - 5, y - 1))
     }
-    fn clear_style_for(&self, _location: &Location) -> Style {
-        Style::default()
+    fn bottom_right_corner(&self) -> io::Result<Position> {
+        let (x, y) = self.center;
+        Ok((x + 5, y + 1))
     }
 }
 
-impl EventHandler for GreenBox {
-    fn on_event(&mut self, event: Event) -> io::Result<()> {
-        match event {
-            Event::Key(Key::Esc) | Event::Key(Key::Ctrl('c')) => {
-                Err(io::Error::from(io::ErrorKind::Interrupted))
+struct MyModel {
+    input_box: MyInputBox,
+}
+
+fn init(canvas: &MyCanvas) -> io::Result<MyModel> {
+    Ok(MyModel {
+        input_box: MyInputBox {
+            value: 'x',
+            center: canvas.center()?,
+            font_style: Style::default().fg(Color::Black).on(Color::White),
+            bg_style: Style::default().on(Color::Green),
+        },
+    })
+}
+
+fn update(model: &mut MyModel, event: &Event) -> io::Result<Event> {
+    match event {
+        Event::GracefulStop => Ok(Event::Stop),
+        Event::Input(Input::Key(k)) => match k {
+            Key::Char(c) => {
+                model.input_box.value = *c;
+                Ok(Event::NoOp)
             }
-            Event::Key(Key::Char(c)) => {
-                self.display = c;
-                Ok(())
+            Key::Up => {
+                let (x, y) = model.input_box.center()?;
+                model.input_box.center = (x, y - 1);
+                Ok(Event::NoOp)
             }
-            Event::Mouse(me) => match me {
-                MouseEvent::Hold(x, y) | MouseEvent::Press(_, x, y) => {
-                    self.set_center(&(x, y));
-                    Ok(())
-                }
-                _ => Ok(()),
+            Key::Down => {
+                let (x, y) = model.input_box.center()?;
+                model.input_box.center = (x, y + 1);
+                Ok(Event::NoOp)
+            }
+            Key::Left => {
+                let (x, y) = model.input_box.center()?;
+                model.input_box.center = (x - 1, y);
+                Ok(Event::NoOp)
+            }
+            Key::Right => {
+                let (x, y) = model.input_box.center()?;
+                model.input_box.center = (x + 1, y);
+                Ok(Event::NoOp)
+            }
+            _ => Ok(Event::NoOp),
+        },
+        Event::Input(Input::Mouse(m)) => match m {
+            Mouse::Press(_, x, y) | Mouse::Hold(x, y) => {
+                model.input_box.center = (*x, *y);
+                Ok(Event::NoOp)
+            }
+            _ => Ok(Event::NoOp),
+        },
+        _ => Ok(Event::NoOp),
+    }
+}
+
+fn view(canvas: &MyCanvas, model: &MyModel, position: &Position) -> io::Result<Option<TermPixel>> {
+    match simple_border(canvas, model, position) {
+        Ok(None) => match model.input_box.covers(position)? {
+            true => match position == &model.input_box.center()? {
+                true => Ok(Some((model.input_box.value, model.input_box.font_style))),
+                _ => Ok(Some((' ', model.input_box.bg_style))),
             },
-            _ => Ok(()),
-        }
+            _ => Ok(Some((' ', canvas.bg_style))),
+        },
+        border => border,
     }
 }
 
 fn main() {
-    let mut panel = GreenBox {
-        display: 'x',
-        display_style: Style::default().fg(Color::Black).on(Color::White),
-        fill: ' ',
-        fill_style: Style::default().on(Color::Green),
-        border_style: Style::default().on(Color::Red),
-        size: (20, 10),    // width, height
-        position: (20, 4), // x, y
+    let cv = MyCanvas {
+        bg_style: Style::default(),
+        size: terminal_size().unwrap(),
     };
-
-    let mut stdout = MouseTerminal::from(io::stdout().into_raw_mode().unwrap());
-
-    let stdin = io::stdin();
-    let mut events = stdin.events();
-
-    if let Err(err) = panel.render(&mut stdout, &mut events, None) {
-        eprintln!("{}", err);
-        std::process::exit(1);
-    };
+    app::run(&cv, &init, &view, &update, None).unwrap();
 }

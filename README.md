@@ -17,10 +17,7 @@ Run Example
 -------
 
 ```bash
-cargo run --release --example snake
+cargo run --release --example inputs
 ```
-
-[![asciicast](https://asciinema.org/a/316481.svg)](https://asciinema.org/a/316481)
-
 
 Warning: This project is currently for my own learning purpose and thus highly unstable.

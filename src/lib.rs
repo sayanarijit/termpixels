@@ -1,8 +1,11 @@
 pub extern crate ansi_term;
 pub extern crate termion;
 
-pub mod border;
-pub mod core;
-pub mod prelude;
+pub mod app;
+pub mod canvas;
+pub mod event;
+pub mod exit_code;
+pub mod types;
+pub mod views;
 
-pub use crate::core::*;
+// pub mod prelude;
