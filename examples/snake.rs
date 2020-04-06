@@ -120,7 +120,7 @@ struct MyModel {
 
 fn init() -> io::Result<(MyCanvas, MyModel)> {
     let cv = MyCanvas {
-        size: terminal_size().unwrap(),
+        size: terminal_size()?,
         fill_ascii: ' ',
         fill_style: Style::default().on(Color::Black),
     };
