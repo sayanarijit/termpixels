@@ -4,7 +4,6 @@ use termion::terminal_size;
 use termpixels::app;
 use termpixels::event::{Event, Input, Key, Mouse};
 use termpixels::types::*;
-use termpixels::views::border::simple_border;
 
 struct MyCanvas {
     size: Size,
@@ -44,7 +43,7 @@ struct MyModel {
 fn init() -> io::Result<(MyCanvas, MyModel)> {
     let cv = MyCanvas {
         bg_style: Style::default(),
-        size: terminal_size().unwrap(),
+        size: terminal_size()?,
     };
     let model = MyModel {
         input_box: MyInputBox {
@@ -99,15 +98,12 @@ fn update(_: &MyCanvas, model: &mut MyModel, event: &Event<()>) -> io::Result<Ev
 }
 
 fn view(canvas: &MyCanvas, model: &MyModel, position: &Position) -> io::Result<Option<TermPixel>> {
-    match simple_border(canvas, model, position) {
-        Ok(None) => match model.input_box.covers(position)? {
-            true => match position == &model.input_box.center()? {
-                true => Ok(Some((model.input_box.value, model.input_box.font_style))),
-                _ => Ok(Some((' ', model.input_box.bg_style))),
-            },
-            _ => Ok(Some((' ', canvas.bg_style))),
+    match model.input_box.covers(position)? {
+        true => match position == &model.input_box.center()? {
+            true => Ok(Some((model.input_box.value, model.input_box.font_style))),
+            _ => Ok(Some((' ', model.input_box.bg_style))),
         },
-        border => border,
+        _ => Ok(Some((' ', canvas.bg_style))),
     }
 }
 

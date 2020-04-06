@@ -6,6 +6,5 @@ pub mod canvas;
 pub mod event;
 pub mod exit_code;
 pub mod types;
-pub mod views;
 
 // pub mod prelude;

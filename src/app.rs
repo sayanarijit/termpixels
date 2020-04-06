@@ -37,7 +37,7 @@ pub fn run<C: Canvas, M: Model, E, I: Init<C, M>, V: View<C, M>, U: Update<C, M,
     update: &U,
     refresh_interval: Option<Duration>,
 ) -> io::Result<()> {
-    let mut stdout = MouseTerminal::from(io::stdout().into_raw_mode().unwrap());
+    let mut stdout = MouseTerminal::from(io::stdout().into_raw_mode()?);
     let mut inputs = async_stdin().events();
     let mut interrupted = false;
     let mut screen: HashMap<Position, TermPixel> = HashMap::new();
