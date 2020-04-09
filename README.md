@@ -1,7 +1,7 @@
 termpixels
 ==========
 
-A work in progress TUI framework.
+A ~work in progress~ TUI framework.
 
 
 Add in Cargo.toml
